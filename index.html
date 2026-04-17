@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://js.culqi.com/checkout-js"></script>
+	<script src="https://3ds.culqi.com" defer></script>
+</head>
+<body>
+    <h1>Culqi 3DS</h1>
+
+    <button id="btnPay">Pagar</button>
+	<script>
+        let isCulqiReady = false;
+        const interval = setInterval(() => {
+            if (window.Culqi3DS && window.CulqiCheckout) {
+                isCulqiReady = true;
+                start();
+                clearInterval(interval);
+            } else {
+                console.log('Culqi3DS or Culqi not ready yet');
+            }
+        }, 500);
+        
+        function start() {
+            const paymentMethods = {
+                tarjeta: true,
+                yape: false, 
+                bancaMovil: false,
+                agente: false,
+                billetera: false,
+                cuotealo: false,
+            }
+            const config = {
+            settings: {
+                title: 'io.pe',
+                currency: 'PEN',
+            },
+            options: {
+                lang: 'es',
+                installments: false,
+                modal: false,
+                paymentMethods: paymentMethods,
+                paymentMethodsSort: Object.keys(paymentMethods),
+            },
+            appearance: {
+                logo: 'https://static.io.pe/assets/template-email/layout/logo-io.png',
+                buttonCardPayText: "Pagape",
+            }
+          };
+            const PUBLIC_KEY = "%VITE_CULQI_PUBLIC_KEY%";
+            const Culqi = new window.CulqiCheckout(PUBLIC_KEY, config);
+            window.Culqi3DS.settings = {
+                charge: {
+                    totalAmount: 100,
+                    returnUrl: window.location.origin,
+                },
+                card: {
+                    email: "soporte@culqi.com"
+                }
+            };
+            window.Culqi3DS.options = {
+                showModal: true,
+                showLoading: true,
+                showIcon: true,
+                closeModalAction: function () {
+                    /* ... */
+                    console.log('Close modal action');
+                },
+                style: {
+                    btnColor: "#3c1361",
+                    btnTextColor: "#FFFFFF"
+                }
+            };
+            console.log('Culqi3DS is ready', window.Culqi3DS);
+            window.Culqi3DS.publicKey = PUBLIC_KEY;
+            /*
+            window.Culqi3DS.generateDevice().then((deviceFingerprintId) => {
+                console.log('Device Fingerprint ID:', deviceFingerprintId);
+            }).catch((error) => {
+                console.error('Error generating device fingerprint:', error);
+            });
+            */
+            const btnPay = document.getElementById('btnPay');
+            btnPay.addEventListener('click', () => {
+                Culqi.open();
+            });
+            Culqi.culqi = function () {
+                console.log('Culqi.culqi called');
+                console.log('Culqi token:', Culqi.token);
+                Culqi.close();
+                console.log('Culqi3DS.settings:', window.Culqi3DS.settings);
+                window.Culqi3DS.initAuthentication(Culqi.token.id);
+                console.log('Culqi3DS.initAuthentication called');
+            };
+        }
+
+        window.addEventListener(
+		"message",
+		function (event) {
+			if (event.origin === window.location.origin) {
+				const response = event.data;
+                console.log('Response from Culqi3DS:', response);
+				if (response.loading) {
+					/* Mostrar custom loading */
+				} else {
+					/* Ocultar custom loading */
+				}
+
+				if (response.parameters3DS) {
+                    console.log('Parameters 3DS:', response.parameters3DS);
+					/*
+					La autenticación 3DS se completó exitosamente
+					response.parameters3DS -> { xid: "0201848b8c23f6b0196cfd", ... }
+				*/
+				}
+
+				if (response.error) {
+                    console.log('Error from Culqi3DS:', response.error);
+					/*
+					Hubo un error en la autenticación 3DS
+					response.error -> “No se pudo autenticar la transacción”
+				*/
+				}
+			}
+		},
+		false
+	);
+	</script>
+</body>
+</html>
